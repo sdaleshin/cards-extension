@@ -1,30 +1,26 @@
 let shiftPressed = false
-const requestWord  = debounce((word) => {
-    console.log('word', word)
-    if(word) {
+const requestWord = debounce((word, x, y) => {
+    if (word) {
+        if (divElement) {
+            divElement.remove()
+        }
         chrome.runtime.sendMessage({action: 'requestTranslation', payload: word}, function (response) {
-            // Handle the response received from the background script
             console.log('response', response)
+            if (response.length) {
+                renderTranslation(x, y, response[0].gloss)
+            }
         });
     }
 }, 200)
 document.addEventListener('mousemove', e => {
-    console.log('shiftPressed', shiftPressed);
-    if(shiftPressed) {
+    if (shiftPressed) {
         const textContext = document.elementFromPoint(e.clientX, e.clientY)?.innerText
         const range = document.caretRangeFromPoint(e.clientX, e.clientY);
         const word = findWordBySymbolIndex(range.commonAncestorContainer.textContent.replace(/[,\.]/g, ' '), range.startOffset)
-        console.log('wwwword', word);
-        requestWord(word)
+        console.log('word', word)
+        requestWord(word, e.clientX, e.clientY)
     }
 }, {passive: true})
-
-// chrome.runtime.sendMessage({ action: 'requestTranslation', payload: 'word' }, function(response) {
-//     // Handle the response received from the background script
-//     console.log('response', response)
-// });
-
-
 document.addEventListener('keydown', handleShiftKey);
 document.addEventListener('keyup', handleShiftKey);
 
@@ -33,6 +29,9 @@ function handleShiftKey(event) {
         shiftPressed = true
     } else {
         shiftPressed = false
+        if (divElement) {
+            divElement.remove()
+        }
     }
 }
 
@@ -56,14 +55,35 @@ function findWordBySymbolIndex(text, symbolIndex) {
 function debounce(func, delay) {
     let timeoutId;
 
-    return function() {
+    return function () {
         const context = this;
         const args = arguments;
 
         clearTimeout(timeoutId);
 
-        timeoutId = setTimeout(function() {
+        timeoutId = setTimeout(function () {
             func.apply(context, args);
         }, delay);
     };
+}
+
+let divElement = null
+
+function renderTranslation(x, y, text) {
+    if (divElement) {
+        divElement.remove()
+    }
+    divElement = document.createElement('div');
+    divElement.style.position = 'absolute';
+    divElement.style.left = x + window.pageXOffset + 'px';
+    divElement.style.top = y + window.pageYOffset + 'px';
+    divElement.style.padding = '16px';
+    divElement.style.borderWidth = '1px';
+    divElement.style.borderRadius = '4px';
+    divElement.style.fontSize = '14px';
+    divElement.style.backgroundColor = 'white';
+    divElement.style.zIndex = '99999';
+    divElement.style.maxWidth = '300px';
+    divElement.textContent = text;
+    document.body.appendChild(divElement);
 }
