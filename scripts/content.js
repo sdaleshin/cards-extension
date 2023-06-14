@@ -1,13 +1,15 @@
 let shiftPressed = false
-const requestWord = debounce((word, x, y) => {
+const requestWord = debounce((word, context, x, y) => {
+    console.log('word', word)
+    console.log('textContext', context)
     if (word) {
         if (divElement) {
             divElement.remove()
         }
-        chrome.runtime.sendMessage({action: 'requestTranslation', payload: word}, function (response) {
+        chrome.runtime.sendMessage({action: 'requestTranslation', payload: {word, context}}, function (response) {
             console.log('response', response)
-            if (response.length) {
-                renderTranslation(x, y, response[0].gloss)
+            if (response.choices && response.choices.length) {
+                renderTranslation(x, y, response.choices[0].message.content)
             }
         });
     }
@@ -18,7 +20,7 @@ document.addEventListener('mousemove', e => {
         const range = document.caretRangeFromPoint(e.clientX, e.clientY);
         const word = findWordBySymbolIndex(range.commonAncestorContainer.textContent.replace(/[,\.]/g, ' '), range.startOffset)
         console.log('word', word)
-        requestWord(word, e.clientX, e.clientY)
+        requestWord(word, textContext, e.clientX, e.clientY)
     }
 }, {passive: true})
 document.addEventListener('keydown', handleShiftKey);
@@ -80,7 +82,7 @@ function renderTranslation(x, y, text) {
     divElement.style.padding = '16px';
     divElement.style.borderWidth = '1px';
     divElement.style.borderRadius = '4px';
-    divElement.style.fontSize = '14px';
+    divElement.style.fontSize = '16px';
     divElement.style.backgroundColor = 'white';
     divElement.style.zIndex = '99999';
     divElement.style.maxWidth = '300px';

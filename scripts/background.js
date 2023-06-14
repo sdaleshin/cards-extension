@@ -20,7 +20,7 @@ chrome.storage.local.get(["authData"]).then((result) => {
                 authData = data
             })
         });
-    }else{
+    } else {
         authData = result.authData
     }
 });
@@ -37,18 +37,38 @@ chrome.runtime.onMessage.addListener(({action, payload}, sender, sendResponse) =
     }
 });
 
-function requestTranslation(word, sendResponse){
-    fetch('https://api.choodic.com/dictionary/' + word, {
-        method: "GET",
+function requestTranslation({word, context}, sendResponse) {
+    // fetch('https://api.choodic.com/dictionary/' + word, {
+    //     method: "GET",
+    //     mode: "cors",
+    //     cache: "no-cache",
+    //     credentials: "same-origin",
+    //     headers: {
+    //         "Content-Type": "application/json",
+    //         "Authorization": "Bearer" + authData.token
+    //     },
+    //     redirect: "follow",
+    //     referrerPolicy: "no-referrer",
+    // }).then(response => response.json()).then(data => {
+    //     sendResponse(data)
+    // })
+    // return true
+
+    fetch('https://api.choodic.com/translation', {
+        method: "POST",
         mode: "cors",
         cache: "no-cache",
         credentials: "same-origin",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer" + authData.token
+            "Authorization": "Bearer " + authData.token
         },
         redirect: "follow",
         referrerPolicy: "no-referrer",
+        body: JSON.stringify({
+            word,
+            context
+        })
     }).then(response => response.json()).then(data => {
         sendResponse(data)
     })
