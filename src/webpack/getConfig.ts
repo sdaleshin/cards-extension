@@ -17,8 +17,8 @@ export const getConfig = (
         ...baseConfig,
         entry: {
             background: './src/background.ts',
-            content: './src/content.ts',
-            'start-page': './src/start-page/start-page.ts',
+            content: './src/content/content.tsx',
+            'start-page': './src/start-page/start-page.tsx',
         },
         output: {
             filename: '[name].js',
@@ -33,6 +33,10 @@ export const getConfig = (
                     {
                         from: 'src/images',
                         to: 'images',
+                    },
+                    {
+                        from: 'src/videos',
+                        to: 'videos',
                     },
                     {
                         from: 'src/start-page/index.html',
