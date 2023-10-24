@@ -16,12 +16,14 @@ export function ContentApp() {
         } else {
             shiftPressed = false
             setTranslationText('')
+            setX(0)
+            setY(0)
         }
     }
 
     useEffect(() => {
         const requestWord = debounce((word: string, context: string, x, y) => {
-            if (word) {
+            if (word && shiftPressed) {
                 setX(x)
                 setY(y)
                 chrome.runtime.sendMessage(
@@ -68,9 +70,5 @@ export function ContentApp() {
         document.addEventListener('keyup', handleShiftKey)
     }, [])
 
-    return (
-        <div>
-            <Translation x={x} y={y} text={translationText} />
-        </div>
-    )
+    return <div>{x && <Translation x={x} y={y} text={translationText} />}</div>
 }
