@@ -1,12 +1,10 @@
-interface ITokens {
+import { getTranslationUrl } from './utils/apiUrls'
+import { authorizedFetch } from './utils/authorizedFetch'
+
+export interface ITokens {
     token: string
     refreshToken: string
 }
-
-let tokens: ITokens = null
-chrome.storage.local.get(['tokens']).then((result: any) => {
-    tokens = result.tokens
-})
 
 chrome.runtime.onInstalled.addListener(function () {
     chrome.tabs.create({ url: 'index.html' })
@@ -17,24 +15,14 @@ chrome.runtime.onMessage.addListener(
             case 'requestTranslation':
                 return requestTranslation(payload, sendResponse)
             case 'setTokens':
-                tokens = payload
-                chrome.storage.local.set({ tokens: payload })
+                chrome.storage.local.set({ choodic_tokens: payload })
         }
     },
 )
 
 function requestTranslation({ word, context }, sendResponse) {
-    fetch('https://api.choodic.com/translation', {
+    authorizedFetch(getTranslationUrl(), {
         method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + tokens.token,
-        },
-        redirect: 'follow',
-        referrerPolicy: 'no-referrer',
         body: JSON.stringify({
             word,
             context,
@@ -42,7 +30,7 @@ function requestTranslation({ word, context }, sendResponse) {
     })
         .then((response) => response.json())
         .then((data) => {
-            sendResponse(data)
+            sendResponse({ data, word, context })
         })
     return true
 }

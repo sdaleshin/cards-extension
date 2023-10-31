@@ -1,4 +1,4 @@
-export function findWordBySymbolIndex(text, symbolIndex) {
+export function findWordAndIndexBySymbolIndex(text, symbolIndex) {
     const words = text.split(' ')
     let currentIndex = 0
 
@@ -9,7 +9,7 @@ export function findWordBySymbolIndex(text, symbolIndex) {
             symbolIndex >= currentIndex &&
             symbolIndex < currentIndex + wordLength
         ) {
-            return word
+            return [word, currentIndex]
         }
 
         currentIndex += wordLength + 1 // +1 to account for the space between words

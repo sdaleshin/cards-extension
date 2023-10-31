@@ -15,13 +15,15 @@ const ContentDiv = styled.div<{ x: number; y: number; loading: boolean }>`
     color: ${Colors.White};
     background-color: ${Colors.Blue60};
     z-index: 99999;
-    max-width: 300px;
+    max-width: ${(p) => (p.loading ? '56px' : '300px')};
     background-image: ${(p) =>
         p.loading
             ? css`url(${chrome.runtime.getURL('images/loader.gif')})`
             : 'none'};
+    background-size: 24px;
     background-repeat: no-repeat;
     background-position: center;
+    //transition: 0.8s;
 `
 
 export function Translation({

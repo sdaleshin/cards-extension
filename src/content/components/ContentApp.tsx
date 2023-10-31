@@ -1,67 +1,108 @@
 import { useEffect, useState } from 'react'
 import { Translation } from './Translation'
-import { findWordBySymbolIndex } from '../../utils/findWordBySymbolIndex'
 import { debounce } from '../../utils/debounce'
+import { getTranslationParamsFromSelection } from '../../utils/getTranslationParamsFromSelection'
+import { getTranslationParamsByCoordinates } from '../../utils/getTranslationParamsByCoordinates'
 
 let shiftPressed = false
+let word = ''
+let context = ''
+let lastMouseX = 0
+let lastMouseY = 0
 
 export function ContentApp() {
     const [x, setX] = useState(0)
     const [y, setY] = useState(0)
     const [translationText, setTranslationText] = useState('')
 
-    const handleShiftKey = (event) => {
+    const handleShiftKey = (event: KeyboardEvent) => {
         if (event.shiftKey) {
             shiftPressed = true
+            const paramsFromSelection = getTranslationParamsFromSelection()
+            if (paramsFromSelection) {
+                word = paramsFromSelection.word
+                context = paramsFromSelection.context
+                requestTranslationWord(
+                    paramsFromSelection.x,
+                    paramsFromSelection.y,
+                )
+            } else if (lastMouseY && lastMouseX) {
+                const translationParams = getTranslationParamsByCoordinates(
+                    lastMouseX,
+                    lastMouseY,
+                )
+                if (translationParams) {
+                    word = translationParams.word
+                    context = translationParams.context
+                    requestTranslationWord(
+                        translationParams.x,
+                        translationParams.y,
+                    )
+                }
+            }
         } else {
             shiftPressed = false
             setTranslationText('')
             setX(0)
             setY(0)
+            if (word) {
+                window.getSelection().removeAllRanges()
+                word = ''
+                context = ''
+            }
+        }
+    }
+
+    const requestTranslationWord = (x, y) => {
+        if (word && shiftPressed) {
+            setX(x + 15)
+            setY(y + 15)
+            setTranslationText('')
+            chrome.runtime.sendMessage(
+                {
+                    action: 'requestTranslation',
+                    payload: { word, context },
+                },
+                function (response) {
+                    if (
+                        response.word === word &&
+                        response.context === context &&
+                        response.data.choices &&
+                        response.data.choices.length
+                    ) {
+                        setTranslationText(
+                            response.data.choices[0].message.content,
+                        )
+                    }
+                },
+            )
         }
     }
 
     useEffect(() => {
-        const requestWord = debounce((word: string, context: string, x, y) => {
-            if (word && shiftPressed) {
-                setX(x)
-                setY(y)
-                chrome.runtime.sendMessage(
-                    {
-                        action: 'requestTranslation',
-                        payload: { word, context },
-                    },
-                    function (response) {
-                        if (response.choices && response.choices.length) {
-                            setTranslationText(
-                                response.choices[0].message.content,
-                            )
-                        }
-                    },
-                )
-            }
-        }, 200)
+        const requestTranslationDebounced = debounce(
+            requestTranslationWord,
+            200,
+        )
 
         document.addEventListener(
             'mousemove',
-            (e) => {
+            ({ clientX, clientY }) => {
+                lastMouseX = clientX
+                lastMouseY = clientY
                 if (shiftPressed) {
-                    const textContext = document.elementFromPoint(
-                        e.clientX,
-                        e.clientY,
-                    )?.innerText
-                    const range = document.caretRangeFromPoint(
-                        e.clientX,
-                        e.clientY,
+                    const translationParams = getTranslationParamsByCoordinates(
+                        clientX,
+                        clientY,
                     )
-                    const word = findWordBySymbolIndex(
-                        range.commonAncestorContainer.textContent.replace(
-                            /[,\.]/g,
-                            ' ',
-                        ),
-                        range.startOffset,
-                    )
-                    requestWord(word, textContext, e.clientX, e.clientY)
+                    if (translationParams) {
+                        word = translationParams.word
+                        context = translationParams.context
+                        requestTranslationDebounced(
+                            translationParams.x,
+                            translationParams.y,
+                        )
+                    }
                 }
             },
             { passive: true },
@@ -70,5 +111,7 @@ export function ContentApp() {
         document.addEventListener('keyup', handleShiftKey)
     }, [])
 
-    return <div>{x && <Translation x={x} y={y} text={translationText} />}</div>
+    return (
+        <div>{!!x && <Translation x={x} y={y} text={translationText} />}</div>
+    )
 }
