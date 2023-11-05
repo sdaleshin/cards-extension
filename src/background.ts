@@ -1,5 +1,7 @@
-import { getTranslationUrl } from './utils/apiUrls'
+import { getCardsUrl, getSettingsUrl, getTranslationUrl } from './utils/apiUrls'
 import { authorizedFetch } from './utils/authorizedFetch'
+import { generateId } from './utils/generateId'
+import { getHash } from './utils/getHash'
 
 export interface ITokens {
     token: string
@@ -14,6 +16,8 @@ chrome.runtime.onMessage.addListener(
         switch (action) {
             case 'requestTranslation':
                 return requestTranslation(payload, sendResponse)
+            case 'addCard':
+                return addCard(payload)
             case 'setTokens':
                 chrome.storage.local.set({ choodic_tokens: payload })
         }
@@ -33,4 +37,36 @@ function requestTranslation({ word, context }, sendResponse) {
             sendResponse({ data, word, context })
         })
     return true
+}
+
+async function addCard({
+    word,
+    explanation,
+}: {
+    word: string
+    explanation: string
+}) {
+    const settingsResponse = await authorizedFetch(getSettingsUrl(), {
+        method: 'GET',
+    })
+    const settings = (await settingsResponse.json()) as {
+        extensionTranslationFolderId: string
+    }
+
+    await authorizedFetch(getCardsUrl(), {
+        method: 'POST',
+        body: JSON.stringify({
+            id: generateId(),
+            title: word,
+            hash: getHash({
+                title: word,
+                explanation,
+                folderId: settings.extensionTranslationFolderId,
+                type: 'gpt',
+            }),
+            type: 'gpt',
+            explanation: explanation,
+            folderId: settings.extensionTranslationFolderId,
+        }),
+    })
 }

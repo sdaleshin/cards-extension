@@ -11,3 +11,11 @@ export function getAuthInExtensionUrl() {
 export function getRefreshTokenUrl() {
     return baseApiUrl + 'auth/refresh-token'
 }
+
+export function getSettingsUrl() {
+    return baseApiUrl + 'settings'
+}
+
+export function getCardsUrl() {
+    return baseApiUrl + 'cards'
+}

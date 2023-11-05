@@ -70,9 +70,13 @@ export function ContentApp() {
                         response.data.choices &&
                         response.data.choices.length
                     ) {
-                        setTranslationText(
-                            response.data.choices[0].message.content,
-                        )
+                        const explanation =
+                            response.data.choices[0].message.content
+                        setTranslationText(explanation)
+                        chrome.runtime.sendMessage({
+                            action: 'addCard',
+                            payload: { word, explanation },
+                        })
                     }
                 },
             )
@@ -95,7 +99,11 @@ export function ContentApp() {
                         clientX,
                         clientY,
                     )
-                    if (translationParams) {
+                    if (
+                        translationParams &&
+                        (translationParams.word !== word ||
+                            translationParams.context !== context)
+                    ) {
                         word = translationParams.word
                         context = translationParams.context
                         requestTranslationDebounced(
