@@ -7,9 +7,10 @@ let refreshPromise = null
 export async function authorizedFetch(url: string, options: RequestInit) {
     let tokens: ITokens = (await chrome.storage.local.get(['choodic_tokens']))
         .choodic_tokens
-
     if (refreshPromise) {
-        tokens = await refreshPromise
+        try {
+            tokens = await refreshPromise
+        } catch (e) {}
     }
     let response = await basicFetch(url, {
         ...options,
@@ -30,7 +31,7 @@ export async function authorizedFetch(url: string, options: RequestInit) {
                     },
                 },
             )
-            if (refreshTokenResponse.status !== 200) {
+            if (refreshTokenResponse.status !== 201) {
                 chrome.tabs.create({ url: 'index.html' })
                 reject()
             }
