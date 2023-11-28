@@ -1,10 +1,7 @@
-import { debounce } from '../utils/debounce'
 import { createRoot } from 'react-dom/client'
 import { ContentApp } from './components/ContentApp'
 
 const CHOODIC_EXTENSION_TRANSLATION_ID = 'choodic-extension-translation-id'
-
-
 
 function init() {
     const rootElement = document.createElement('div')

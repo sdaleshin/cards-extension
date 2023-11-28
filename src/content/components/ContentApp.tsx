@@ -1,122 +1,142 @@
 import { useEffect, useState } from 'react'
 import { Translation } from './Translation'
-import { debounce } from '../../utils/debounce'
 import { getTranslationParamsFromSelection } from '../../utils/getTranslationParamsFromSelection'
 import { getTranslationParamsByCoordinates } from '../../utils/getTranslationParamsByCoordinates'
+import { TranslationRequestParams } from '../../types'
 
-let shiftPressed = false
-let word = ''
-let context = ''
-let lastMouseX = 0
-let lastMouseY = 0
+interface MouseMoveData {
+    x: number
+    y: number
+}
+
+const ALLOW_MOUSE_MOVE_DISTANCE = 5
+
+function isMouseMoving(
+    previous: MouseMoveData,
+    current: MouseMoveData,
+): boolean {
+    const distance = Math.sqrt(
+        (previous.x - current.x) ** 2 + (previous.y - current.y) ** 2,
+    )
+    return distance > ALLOW_MOUSE_MOVE_DISTANCE
+}
+
+let mouseDown: boolean = false
+let checkMouseMoveTimeout: any = null
+let currentMouseMoveData: MouseMoveData = null
+let translationRequestParams: TranslationRequestParams = null
 
 export function ContentApp() {
     const [x, setX] = useState(0)
     const [y, setY] = useState(0)
     const [translationText, setTranslationText] = useState('')
 
-    const handleShiftKey = (event: KeyboardEvent) => {
-        if (event.shiftKey) {
-            shiftPressed = true
-            const paramsFromSelection = getTranslationParamsFromSelection()
-            if (paramsFromSelection) {
-                word = paramsFromSelection.word
-                context = paramsFromSelection.context
-                requestTranslationWord(
-                    paramsFromSelection.x,
-                    paramsFromSelection.y,
-                )
-            } else if (lastMouseY && lastMouseX) {
-                const translationParams = getTranslationParamsByCoordinates(
-                    lastMouseX,
-                    lastMouseY,
-                )
-                if (translationParams) {
-                    word = translationParams.word
-                    context = translationParams.context
-                    requestTranslationWord(
-                        translationParams.x,
-                        translationParams.y,
-                    )
-                }
-            }
-        } else {
-            shiftPressed = false
-            setTranslationText('')
-            setX(0)
-            setY(0)
-            if (word) {
-                window.getSelection().removeAllRanges()
-                word = ''
-                context = ''
-            }
-        }
+    const abortTranslation = () => {
+        setTranslationText('')
+        setX(0)
+        setY(0)
+        translationRequestParams = null
+        // if (word && shouldRemoveSelectionOnDeactivation) {
+        //     window.getSelection().removeAllRanges()
+        //     word = ''
+        //     context = ''
+        // }
     }
 
-    const requestTranslationWord = (x, y) => {
-        if (word && shiftPressed) {
-            setX(x + 15)
-            setY(y + 15)
-            setTranslationText('')
-            chrome.runtime.sendMessage(
-                {
-                    action: 'requestTranslation',
-                    payload: { word, context },
-                },
-                function (response) {
-                    if (
-                        response.word === word &&
-                        response.context === context &&
-                        response.data.choices &&
-                        response.data.choices.length
-                    ) {
-                        const explanation =
-                            response.data.choices[0].message.content
-                        setTranslationText(explanation)
-                        chrome.runtime.sendMessage({
-                            action: 'addCard',
-                            payload: { word, explanation },
-                        })
-                    }
-                },
+    const isResponseRelevant = (response: any) => {
+        return response.id === translationRequestParams?.id
+    }
+
+    const setUpCheckMouseInterval = (previousMouseData: MouseMoveData) => {
+        checkMouseMoveTimeout = setTimeout(() => {
+            isMouseMoving(previousMouseData, currentMouseMoveData)
+                ? abortTranslation()
+                : translate()
+
+            checkMouseMoveTimeout = null
+        }, 200)
+    }
+
+    const translate = () => {
+        let newTranslationRequestParams = getTranslationParamsFromSelection()
+        if (!newTranslationRequestParams) {
+            newTranslationRequestParams = getTranslationParamsByCoordinates(
+                currentMouseMoveData.x,
+                currentMouseMoveData.y,
+            )
+        }
+
+        if (
+            newTranslationRequestParams?.word &&
+            (translationRequestParams?.word !==
+                newTranslationRequestParams?.word ||
+                translationRequestParams?.context !==
+                    newTranslationRequestParams?.context)
+        ) {
+            translationRequestParams = newTranslationRequestParams
+            requestTranslationWord(
+                currentMouseMoveData.x,
+                currentMouseMoveData.y,
             )
         }
     }
 
-    useEffect(() => {
-        const requestTranslationDebounced = debounce(
-            requestTranslationWord,
-            200,
-        )
+    const requestTranslationWord = (x, y) => {
+        setX(x + 15)
+        setY(y + 15)
+        setTranslationText('')
+        chrome.runtime.sendMessage(
+            {
+                action: 'requestTranslation',
+                payload: translationRequestParams,
+            },
+            function (response) {
+                if (!isResponseRelevant(response)) {
+                    return
+                }
+                if (response.data === null) {
+                    abortTranslation()
+                    return
+                }
 
+                if (response.data.choices && response.data.choices.length) {
+                    const explanation = response.data.choices[0].message.content
+                    setTranslationText(explanation)
+                    chrome.runtime.sendMessage({
+                        action: 'addCard',
+                        payload: {
+                            word: translationRequestParams.word,
+                            explanation,
+                        },
+                    })
+                }
+            },
+        )
+    }
+
+    useEffect(() => {
         document.addEventListener(
             'mousemove',
             ({ clientX, clientY }) => {
-                lastMouseX = clientX
-                lastMouseY = clientY
-                if (shiftPressed) {
-                    const translationParams = getTranslationParamsByCoordinates(
-                        clientX,
-                        clientY,
-                    )
-                    if (
-                        translationParams &&
-                        (translationParams.word !== word ||
-                            translationParams.context !== context)
-                    ) {
-                        word = translationParams.word
-                        context = translationParams.context
-                        requestTranslationDebounced(
-                            translationParams.x,
-                            translationParams.y,
-                        )
-                    }
+                if (mouseDown && !checkMouseMoveTimeout) {
+                    setUpCheckMouseInterval(currentMouseMoveData)
+                }
+                currentMouseMoveData = {
+                    x: clientX,
+                    y: clientY,
                 }
             },
             { passive: true },
         )
-        document.addEventListener('keydown', handleShiftKey)
-        document.addEventListener('keyup', handleShiftKey)
+        document.addEventListener('mousedown', () => {
+            mouseDown = true
+            setUpCheckMouseInterval(currentMouseMoveData)
+        })
+        document.addEventListener('mouseup', () => {
+            mouseDown = false
+            checkMouseMoveTimeout && clearInterval(checkMouseMoveTimeout)
+            abortTranslation()
+        })
     }, [])
 
     return (

@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener(
     },
 )
 
-function requestTranslation({ word, context }, sendResponse) {
+function requestTranslation({ id, word, context }, sendResponse) {
     authorizedFetch(getTranslationUrl(), {
         method: 'POST',
         body: JSON.stringify({
@@ -34,7 +34,10 @@ function requestTranslation({ word, context }, sendResponse) {
     })
         .then((response) => response.json())
         .then((data) => {
-            sendResponse({ data, word, context })
+            sendResponse({ data, id })
+        })
+        .catch(() => {
+            sendResponse({ id })
         })
     return true
 }

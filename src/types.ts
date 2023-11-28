@@ -1,6 +1,5 @@
-export interface TranslationParams {
+export interface TranslationRequestParams {
+    id: string
     word: string
-    context: string
-    x: number
-    y: number
+    context?: string
 }

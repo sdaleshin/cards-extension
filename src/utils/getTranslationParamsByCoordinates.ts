@@ -1,10 +1,11 @@
-import { TranslationParams } from '../types'
+import { TranslationRequestParams } from '../types'
 import { findWordAndIndexBySymbolIndex } from './findWordAndIndexBySymbolIndex'
+import { generateId } from './generateId'
 
 export function getTranslationParamsByCoordinates(
     x: number,
     y: number,
-): TranslationParams {
+): TranslationRequestParams {
     const elementFromPoint = document.elementFromPoint(x, y)
     const range = document.caretRangeFromPoint(x, y)
     if (elementFromPoint && range) {
@@ -20,10 +21,9 @@ export function getTranslationParamsByCoordinates(
             selection.removeAllRanges()
             selection.addRange(range)
             return {
+                id: generateId(),
                 word: foundWord,
                 context: elementFromPoint?.innerText,
-                x,
-                y,
             }
         }
     }
