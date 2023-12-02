@@ -3,13 +3,17 @@ import { generateId } from './generateId'
 
 export function getTranslationParamsFromSelection(): TranslationRequestParams {
     const selection = window.getSelection()
-    if (selection.rangeCount > 0) {
-        const selectedRange = selection.getRangeAt(0)
-        return {
-            id: generateId(),
-            word: selectedRange.toString(),
-            context: selectedRange.endContainer.textContent,
-        }
+    if (!selection.rangeCount) {
+        return null
     }
-    return null
+    const selectedRange = selection.getRangeAt(0)
+    const word = selectedRange.toString()
+    if (!word) {
+        return null
+    }
+    return {
+        id: generateId(),
+        word,
+        context: selectedRange.endContainer.textContent,
+    }
 }

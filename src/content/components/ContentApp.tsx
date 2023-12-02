@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Translation } from './Translation'
 import { getTranslationParamsFromSelection } from '../../utils/getTranslationParamsFromSelection'
-import { getTranslationParamsByCoordinates } from '../../utils/getTranslationParamsByCoordinates'
 import { TranslationRequestParams } from '../../types'
 
-interface MouseMoveData {
+interface MouseCoordinates {
     x: number
     y: number
 }
@@ -12,8 +11,8 @@ interface MouseMoveData {
 const ALLOW_MOUSE_MOVE_DISTANCE = 5
 
 function isMouseMoving(
-    previous: MouseMoveData,
-    current: MouseMoveData,
+    previous: MouseCoordinates,
+    current: MouseCoordinates,
 ): boolean {
     const distance = Math.sqrt(
         (previous.x - current.x) ** 2 + (previous.y - current.y) ** 2,
@@ -23,7 +22,7 @@ function isMouseMoving(
 
 let mouseDown: boolean = false
 let checkMouseMoveTimeout: any = null
-let currentMouseMoveData: MouseMoveData = null
+let currentMouseCoordinates: MouseCoordinates = null
 let translationRequestParams: TranslationRequestParams = null
 
 export function ContentApp() {
@@ -47,25 +46,28 @@ export function ContentApp() {
         return response.id === translationRequestParams?.id
     }
 
-    const setUpCheckMouseInterval = (previousMouseData: MouseMoveData) => {
+    const setUpCheckMouseInterval = (
+        previousMouseCoordinates: MouseCoordinates,
+    ) => {
         checkMouseMoveTimeout = setTimeout(() => {
-            isMouseMoving(previousMouseData, currentMouseMoveData)
-                ? abortTranslation()
-                : translate()
-
-            checkMouseMoveTimeout = null
+            if (
+                isMouseMoving(previousMouseCoordinates, currentMouseCoordinates)
+            ) {
+                if (translationRequestParams) {
+                    abortTranslation()
+                    setUpCheckMouseInterval(currentMouseCoordinates)
+                } else {
+                    checkMouseMoveTimeout = null
+                }
+            } else {
+                translate()
+                checkMouseMoveTimeout = null
+            }
         }, 200)
     }
 
     const translate = () => {
         let newTranslationRequestParams = getTranslationParamsFromSelection()
-        if (!newTranslationRequestParams) {
-            newTranslationRequestParams = getTranslationParamsByCoordinates(
-                currentMouseMoveData.x,
-                currentMouseMoveData.y,
-            )
-        }
-
         if (
             newTranslationRequestParams?.word &&
             (translationRequestParams?.word !==
@@ -75,8 +77,8 @@ export function ContentApp() {
         ) {
             translationRequestParams = newTranslationRequestParams
             requestTranslationWord(
-                currentMouseMoveData.x,
-                currentMouseMoveData.y,
+                currentMouseCoordinates.x,
+                currentMouseCoordinates.y,
             )
         }
     }
@@ -119,9 +121,9 @@ export function ContentApp() {
             'mousemove',
             ({ clientX, clientY }) => {
                 if (mouseDown && !checkMouseMoveTimeout) {
-                    setUpCheckMouseInterval(currentMouseMoveData)
+                    setUpCheckMouseInterval(currentMouseCoordinates)
                 }
-                currentMouseMoveData = {
+                currentMouseCoordinates = {
                     x: clientX,
                     y: clientY,
                 }
@@ -130,7 +132,7 @@ export function ContentApp() {
         )
         document.addEventListener('mousedown', () => {
             mouseDown = true
-            setUpCheckMouseInterval(currentMouseMoveData)
+            setUpCheckMouseInterval(currentMouseCoordinates)
         })
         document.addEventListener('mouseup', () => {
             mouseDown = false

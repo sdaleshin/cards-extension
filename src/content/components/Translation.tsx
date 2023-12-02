@@ -23,7 +23,6 @@ const ContentDiv = styled.div<{ x: number; y: number; loading: boolean }>`
     background-size: 24px;
     background-repeat: no-repeat;
     background-position: center;
-    //transition: 0.8s;
 `
 
 export function Translation({
