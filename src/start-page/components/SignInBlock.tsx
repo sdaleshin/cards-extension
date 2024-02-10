@@ -12,6 +12,7 @@ import styled from 'styled-components'
 import { GoogleSvg } from './resources/GoogleSvg'
 import { basicFetch } from '../../utils/basicFetch'
 import { getAuthInExtensionUrl } from '../../utils/apiUrls'
+import { useState } from 'react'
 
 const ExplanationTypography = styled(Typography)`
     && {
@@ -36,7 +37,9 @@ const SignInWithGoogleButton = styled(Button)`
 `
 
 export function SignInBlock({ onSuccess }: { onSuccess: () => void }) {
+    const [loading, setLoading] = useState(false)
     const handleSignInClick = () => {
+        setLoading(true)
         chrome.identity.getAuthToken({ interactive: true }, function (token) {
             basicFetch(getAuthInExtensionUrl(), {
                 method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -69,11 +72,13 @@ export function SignInBlock({ onSuccess }: { onSuccess: () => void }) {
                 You need to log in to Google Account to continue working
             </ExplanationTypography>
             <SignInWithGoogleButton
-                text="Sign In With Google"
+                text={
+                    loading ? 'Signing in progress...' : 'Sign In With Google'
+                }
                 size={ButtonSizeEnum.Regular}
                 color={ButtonColorEnum.Black}
                 variant={ButtonVariantEnum.Outlined}
-                onClick={handleSignInClick}
+                onClick={!loading && handleSignInClick}
                 icon={<StyledGoogleSvg />}
             />
         </BlockTemplate>
