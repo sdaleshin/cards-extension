@@ -69,7 +69,7 @@ export function HowToUseBlock({ isActive }: { isActive: boolean }) {
             isActive={isActive}
         >
             <ExplanationTypography type={TypographyType.Body}>
-                Press <ShiftSpan>Shift</ShiftSpan> and hover the word or phrase.
+                Select a word or phrase and hold down the mouse
             </ExplanationTypography>
             <ExplanationTypography type={TypographyType.Body}>
                 Wait a couple seconds and the magic happens
