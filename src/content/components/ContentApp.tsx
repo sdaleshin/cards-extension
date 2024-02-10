@@ -130,9 +130,11 @@ export function ContentApp() {
             },
             { passive: true },
         )
-        document.addEventListener('mousedown', () => {
-            mouseDown = true
-            setUpCheckMouseInterval(currentMouseCoordinates)
+        document.addEventListener('mousedown', (event: MouseEvent) => {
+            if (event.button === 0) {
+                mouseDown = true
+                setUpCheckMouseInterval(currentMouseCoordinates)
+            }
         })
         document.addEventListener('mouseup', () => {
             mouseDown = false
