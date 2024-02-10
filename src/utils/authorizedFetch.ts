@@ -36,10 +36,7 @@ export async function authorizedFetch(url: string, options: RequestInit) {
                 reject()
             }
             tokens = await refreshTokenResponse.json()
-            chrome.runtime.sendMessage({
-                action: 'setTokens',
-                payload: tokens,
-            })
+            chrome.storage.local.set({ choodic_tokens: tokens })
             resolve(tokens)
         })
         await refreshPromise
