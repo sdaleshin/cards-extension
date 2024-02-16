@@ -35,11 +35,6 @@ export function ContentApp() {
         setX(0)
         setY(0)
         translationRequestParams = null
-        // if (word && shouldRemoveSelectionOnDeactivation) {
-        //     window.getSelection().removeAllRanges()
-        //     word = ''
-        //     context = ''
-        // }
     }
 
     const isResponseRelevant = (response: any) => {
@@ -55,10 +50,11 @@ export function ContentApp() {
             ) {
                 if (translationRequestParams) {
                     abortTranslation()
-                    setUpCheckMouseInterval(currentMouseCoordinates)
-                } else {
-                    checkMouseMoveTimeout = null
                 }
+                setUpCheckMouseInterval(currentMouseCoordinates)
+                // else {
+                //     checkMouseMoveTimeout = null
+                // }
             } else {
                 translate()
                 checkMouseMoveTimeout = null
