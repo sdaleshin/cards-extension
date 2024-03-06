@@ -55,6 +55,7 @@
     "webpack-dev-server": "^4.15.1"
   },
   "dependencies": {
+    "authorized-fetch-refresh": "^1.0.1",
     "chooui": "^0.0.2",
     "merkle-json": "^2.6.0",
     "react": "^18.2.0",
