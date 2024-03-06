@@ -1,52 +1,20 @@
 import { getRefreshTokenUrl } from './apiUrls'
-import { ITokens } from '../background'
 import { basicFetch } from './basicFetch'
+import { createAuthorizedFetch, Tokens } from 'authorized-fetch-refresh'
 
-let refreshPromise = null
-
-export async function authorizedFetch(url: string, options: RequestInit) {
-    let tokens: ITokens = (await chrome.storage.local.get(['choodic_tokens']))
-        .choodic_tokens
-    if (refreshPromise) {
-        try {
-            tokens = await refreshPromise
-        } catch (e) {}
-    }
-    let response = await basicFetch(url, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + tokens.token,
+export const authorizedFetch = createAuthorizedFetch(
+    async () => {
+        return (await chrome.storage.local.get(['choodic_tokens']))
+            .choodic_tokens
+    },
+    (tokens: Tokens) => {
+        chrome.storage.local.set({ choodic_tokens: tokens })
+    },
+    getRefreshTokenUrl(),
+    {
+        fetch: basicFetch,
+        onRefreshFailure: () => {
+            chrome.tabs.create({ url: 'index.html' })
         },
-    })
-    if (response.status === 401) {
-        refreshPromise = new Promise(async (resolve, reject) => {
-            const refreshTokenResponse = await basicFetch(
-                getRefreshTokenUrl(),
-                {
-                    method: 'POST',
-                    body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                },
-            )
-            if (refreshTokenResponse.status !== 201) {
-                chrome.tabs.create({ url: 'index.html' })
-                reject()
-            }
-            tokens = await refreshTokenResponse.json()
-            chrome.storage.local.set({ choodic_tokens: tokens })
-            resolve(tokens)
-        })
-        await refreshPromise
-        return await basicFetch(url, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: 'Bearer ' + tokens.token,
-            },
-        })
-    }
-    return response
-}
+    },
+)
